@@ -92,7 +92,6 @@ for line_index, line in enumerate(lines[0:cell_y_count]):
     for character in text:
         delta = ord(character) - ord(space_character)
         binary = f"{delta:06b}"[::-1]
-
         for i, (dx, dy) in enumerate([(0, 2), (0, 1), (0, 0), (1, 2), (1, 1), (1, 0)]):
             if binary[i] == "1":
                 dot_coords.append((x_offset + dx * cell_spacing, y_offset + dy * cell_spacing, positive_mold_d + (dot_d / 2)))
