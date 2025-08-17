@@ -1,0 +1,17 @@
+services:
+
+  braillest_tooling:
+    build:
+      context: ./
+      dockerfile: ./docker/python/Dockerfile
+    container_name: braillest_tooling
+    image: braillest_tooling
+    volumes:
+      - ./src:/braillest
+      - ./data:/data
+    networks:
+      - braillest_tooling
+
+networks:
+  braillest_tooling:
+    name: braillest_tooling
