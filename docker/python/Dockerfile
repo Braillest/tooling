@@ -1,13 +1,19 @@
 FROM python:slim-bookworm
 
+# Update base image
 RUN apt update
 RUN apt upgrade -y
 
+# Install build123d
 RUN apt install -y git
 RUN apt install -y ffmpeg
 RUN pip install git+https://github.com/gumyr/build123d --break-system-packages
 
 # Install louis lib
+RUN apt install -y curl
+RUN apt install -y autoconf
+RUN apt install -y build-essential
+RUN pip install setuptools
 RUN curl -LO https://github.com/liblouis/liblouis/releases/download/v3.31.0/liblouis-3.31.0.tar.gz
 RUN tar xfz liblouis-3.31.0.tar.gz
 RUN cd liblouis-3.31.0 && autoconf && ./configure && make -j $(nproc) && make -j $(nproc) install && cd python && python setup.py install
