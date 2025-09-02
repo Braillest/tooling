@@ -19,6 +19,10 @@ RUN tar xfz liblouis-3.31.0.tar.gz
 RUN cd liblouis-3.31.0 && autoconf && ./configure && make -j $(nproc) && make -j $(nproc) install && cd python && python setup.py install
 RUN ldconfig
 
+# Install required packages
+RUN pip install requests
+RUN pip install bs4
+
 WORKDIR /braillest
 
 ENTRYPOINT sleep infinity
