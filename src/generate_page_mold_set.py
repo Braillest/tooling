@@ -117,7 +117,7 @@ with BuildPart() as positive_mold:
         Sphere(dot_r, arc_size1=0, mode=Mode.ADD)
 
     # Account for mold shrinkage for dimensional accuracy
-    scaled_mold = scale(positive_mold.part, 1.005)
+    scaled_mold = scale(positive_mold.part, scaling_factor)
     export_stl(scaled_mold, positive_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
 
 print(time.time() - start)
@@ -145,7 +145,7 @@ with BuildPart() as negative_mold:
         Hole(hole_r, hole_d, mode=Mode.SUBTRACT)
 
     # Account for mold shrinkage for dimensional accuracy
-    scaled_mold = scale(negative_mold.part, 1.005)
+    scaled_mold = scale(negative_mold.part, scaling_factor)
     export_stl(scaled_mold, negative_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
 
 print(time.time() - start)
