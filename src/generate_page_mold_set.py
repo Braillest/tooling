@@ -149,11 +149,3 @@ with BuildPart() as negative_mold:
     export_stl(scaled_mold, negative_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
 
 print(time.time() - start)
-
-########################################################################
-#
-# NOTE TO SELF:
-#
-# - Validate spacing
-#
-########################################################################
