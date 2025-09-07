@@ -87,7 +87,7 @@ dot_coords = []
 hole_coords = []
 for line_index, line in enumerate(lines[0:cell_y_count]):
     x_offset = slot_w + paper_tolerance + (3 * cell_w) + cell_padding_x
-    y_offset = paper_tolerance + (cell_y_count - line_index) * cell_h + cell_padding_y
+    y_offset = (cell_y_count - line_index) * cell_h + cell_padding_y
     text = line.rstrip()
 
     for character in text:
