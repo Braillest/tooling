@@ -4,6 +4,11 @@ import re
 import sys
 import time
 
+# Handle command line arguments
+if len(sys.argv) != 2:
+    print("Usage: python generate_paginated_braille.py <text_file_path>")
+    sys.exit(1)
+
 # Control variables
 character_x_count = 32
 character_y_count = 26
@@ -166,7 +171,7 @@ if current_page:
 
 # Write pages to dir
 for index, page in enumerate(pages):
-    with open(f"{paginated_braille_directory}{(index + 1):03d}.txt", "w") as out_file:
+    with open(f"{paginated_braille_directory}{(index + 1):04d}.txt", "w") as out_file:
         for line in page:
             out_file.write(line)
 

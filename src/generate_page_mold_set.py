@@ -5,6 +5,11 @@ import math
 import time
 from build123d import *
 
+# Handle command line arguments
+if len(sys.argv) != 2:
+    print("Usage: python generate_page_mold_set.py <braille_file_path>")
+    sys.exit(1)
+
 # Control globals
 scaling_factor = 1.005
 space_character = "\u2800"
@@ -72,6 +77,12 @@ base_negative_mold_file_path = "/data/base-stls/Negative-Castle-Zip-Mold-v9.8.st
 if not os.path.isfile(braille_file_path):
     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), braille_file_path)
 
+if not os.path.isfile(base_positive_mold_file_path):
+    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), base_positive_mold_file_path)
+
+if not os.path.isfile(base_negative_mold_file_path):
+    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), base_negative_mold_file_path)
+
 print("Reading in file")
 start = time.time()
 
@@ -121,31 +132,34 @@ with BuildPart() as positive_mold:
     export_stl(scaled_mold, positive_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
 
 print(time.time() - start)
-print("Generating negative mold")
-start = time.time()
+# print("Generating negative mold")
+# start = time.time()
 
-with BuildPart() as negative_mold:
+# with BuildPart() as negative_mold:
 
-    # imported_mesh = import_stl(base_negative_mold_file_path)
-    importer = Mesher()
-    imported_mesh = importer.read(base_negative_mold_file_path)
+#     # imported_mesh = import_stl(base_negative_mold_file_path)
+#     importer = Mesher()
+#     imported_mesh = importer.read(base_negative_mold_file_path)
 
-    # Rotate about Y axis by 180 degrees
-    target_location = Location(
-        (negative_mold_w/2, negative_mold_h/2, negative_mold_d),
-        (0, 180, 0)
-    )
+#     # Rotate about Y axis by 180 degrees
+#     target_location = Location(
+#         (negative_mold_w/2, negative_mold_h/2, negative_mold_d),
+#         (0, 180, 0)
+#     )
 
-    # Add to BuildPart
-    with Locations(target_location):
-        add(imported_mesh)
+#     # Add to BuildPart
+#     with Locations(target_location):
+#         add(imported_mesh)
 
-    # Subtract holes
-    with Locations(hole_coords):
-        Hole(hole_r, hole_d, mode=Mode.SUBTRACT)
+#     # Subtract holes
+#     with Locations(hole_coords):
+#         Hole(hole_r, hole_d, mode=Mode.SUBTRACT)
 
-    # Account for mold shrinkage for dimensional accuracy
-    scaled_mold = scale(negative_mold.part, scaling_factor)
-    export_stl(scaled_mold, negative_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
+#     # Rotate about Y axis by 180 degrees
+#     negative_mold.part = negative_mold.part.rotate(Axis.Y, 180)
 
-print(time.time() - start)
+#     # Account for mold shrinkage for dimensional accuracy
+#     scaled_mold = scale(negative_mold.part, scaling_factor)
+#     export_stl(scaled_mold, negative_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
+
+# print(time.time() - start)
