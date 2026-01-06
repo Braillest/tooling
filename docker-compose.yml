@@ -9,6 +9,8 @@ services:
     volumes:
       - ./src:/braillest
       - ./data:/data
+      - ./html:/html
+      - ./braillest-books:/braillest-books
     networks:
       - braillest_tooling
 
