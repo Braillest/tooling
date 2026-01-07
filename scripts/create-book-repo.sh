@@ -322,6 +322,12 @@ echo "user: $USER" >> "$BRAILLEST_BOOKS_BOOK_MANIFEST_FILE"
 # Create README.md file.
 echo "![Cover Art](cover-art.jpg)" > "$BRAILLEST_BOOKS_BOOK_DIR/README.md"
 
+# Create .gitignore file to ignore .zip files.
+echo "*.zip" > "$BRAILLEST_BOOKS_BOOK_DIR/.gitignore"
+
+# Call tooling container to zip molds.
+docker exec "$CONTAINER_NAME" python zip_molds.py "//$BRAILLEST_BOOKS_BOOK_BRAILLE_MOLDS_DIR" "//$BRAILLEST_BOOKS_BOOK_DIR"
+
 # Initialize git repository in braillest-books book directory.
 git init "$BRAILLEST_BOOKS_BOOK_DIR"
 
