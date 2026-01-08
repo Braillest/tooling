@@ -10,6 +10,11 @@ if len(sys.argv) != 2:
     print("Usage: python generate_page_mold_set.py <braille_file_path>")
     sys.exit(1)
 
+# Validate argument file exists.
+if not os.path.isfile(sys.argv[-1]):
+    print("File does not exist: " + sys.argv[-1])
+    sys.exit(1)
+
 # Control globals
 scaling_factor = 1.005
 space_character = "\u2800"
@@ -67,12 +72,12 @@ page_number = os.path.basename(braille_file_path)
 page_number = os.path.splitext(page_number)[0]
 book_name = os.path.dirname(braille_file_path)
 book_name = os.path.basename(book_name)
-braille_molds_directory = "/data/braille-molds/" + book_name + "/"
+braille_molds_directory = "/data/6-braille-molds/" + book_name + "/"
 os.makedirs(braille_molds_directory, exist_ok=True)
 positive_mold_file_path = braille_molds_directory + page_number + "-positive.stl"
 negative_mold_file_path = braille_molds_directory + page_number + "-negative.stl"
-base_positive_mold_file_path = "/data/base-stls/Positive-Castle-Zip-Mold-v9.8.stl"
-base_negative_mold_file_path = "/data/base-stls/Negative-Castle-Zip-Mold-v9.8.stl"
+base_positive_mold_file_path = "/data/0-base-stls/Positive-Castle-Zip-Mold-v9.8.stl"
+base_negative_mold_file_path = "/data/0-base-stls/Negative-Castle-Zip-Mold-v9.8.stl"
 
 if not os.path.isfile(braille_file_path):
     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), braille_file_path)

@@ -147,8 +147,14 @@ FORMATTED_BRAILLE_BOOK_FILE="$FORMATTED_BRAILLE_DIR/$BOOK_NAME.txt"
 PAGINATED_BRAILLE_BOOK_DIR="$PAGINATED_BRAILLE_DIR/$BOOK_NAME"
 BRAILLE_MOLDS_BOOK_DIR="$BRAILLE_MOLDS_DIR/$BOOK_NAME"
 
+# Remove special characters.
+BOOK_NAME_ALPHANUMERIC=$(echo "$BOOK_NAME" | tr -cd '[:alnum:] ')
+
 # Replace spaces with dashes.
-BRAILLEST_BOOKS_BOOK_DIR="$BRAILLEST_BOOKS_DIR/$(echo "$BOOK_NAME" | tr ' ' '-')"
+BOOK_NAME=$(echo "$BOOK_NAME_ALPHANUMERIC" | tr ' ' '-')
+
+# Populate braillest-books book directory variable.
+BRAILLEST_BOOKS_BOOK_DIR="$BRAILLEST_BOOKS_DIR/$BOOK_NAME"
 
 # Validate texts book file exists.
 if [ ! -f "$TEXTS_BOOK_FILE" ]; then
@@ -228,9 +234,9 @@ if [ ! -d "$BRAILLEST_BOOKS_BOOK_DIR" ]; then
 fi
 
 # Divide BOOK_NAME into TITLE and AUTHOR making sure to handle the edge case where "by" might be used in the title.
-TITLE=${BOOK_NAME% by *}
-AUTHOR=${BOOK_NAME##* by }
-COVER_ART_OUTPUT_FILE="//braillest-books/$(echo "$BOOK_NAME" | tr ' ' '-')/cover-art.jpg"
+TITLE=${BOOK_NAME_ALPHANUMERIC% by *}
+AUTHOR=${BOOK_NAME_ALPHANUMERIC##* by }
+COVER_ART_OUTPUT_FILE="//braillest-books/$BOOK_NAME/cover-art.jpg"
 SELECTOR="#book-title"
 
 # Create query string.
@@ -290,16 +296,16 @@ cp -ur "$BASE_STLS_DIR/." "$BRAILLEST_BOOKS_BOOK_BASE_STLS_DIR"
 rm "$BRAILLEST_BOOKS_BOOK_BASE_STLS_DIR/.gitkeep"
 
 # Copy texts file into braillest-books book texts directory if newer.
-cp -u "$TEXTS_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_TEXTS_DIR"
+cp -u "$TEXTS_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_TEXTS_DIR/$BOOK_NAME.txt"
 
 # Copy braille file into braillest-books book braille directory if newer.
-cp -u "$BRAILLE_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_BRAILLE_DIR"
+cp -u "$BRAILLE_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_BRAILLE_DIR/$BOOK_NAME.txt"
 
 # Copy back translations file into braillest-books book back translations directory if newer.
-cp -u "$BACK_TRANSLATIONS_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_BACK_TRANSLATIONS_DIR"
+cp -u "$BACK_TRANSLATIONS_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_BACK_TRANSLATIONS_DIR/$BOOK_NAME.txt"
 
 # Copy formatted braille file into braillest-books book formatted braille directory if newer.
-cp -u "$FORMATTED_BRAILLE_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_FORMATTED_BRAILLE_DIR"
+cp -u "$FORMATTED_BRAILLE_BOOK_FILE" "$BRAILLEST_BOOKS_BOOK_FORMATTED_BRAILLE_DIR/$BOOK_NAME.txt"
 
 # Copy the contents of the paginated braille directory into the braillest-books book paginated braille directory if newer.
 cp -ur "$PAGINATED_BRAILLE_BOOK_DIR/." "$BRAILLEST_BOOKS_BOOK_PAGINATED_BRAILLE_DIR"
@@ -314,7 +320,7 @@ COMMIT_HASH=$(git rev-parse HEAD)
 USER=$(git config user.name)
 
 # Create manifest yml file using book name, commit hash, and user.
-echo "book: $BOOK_NAME" > "$BRAILLEST_BOOKS_BOOK_MANIFEST_FILE"
+echo "book: $BOOK_NAME_ALPHANUMERIC" > "$BRAILLEST_BOOKS_BOOK_MANIFEST_FILE"
 echo "repo: $REPO_NAME" >> "$BRAILLEST_BOOKS_BOOK_MANIFEST_FILE"
 echo "commit: $COMMIT_HASH" >> "$BRAILLEST_BOOKS_BOOK_MANIFEST_FILE"
 echo "user: $USER" >> "$BRAILLEST_BOOKS_BOOK_MANIFEST_FILE"
@@ -347,7 +353,7 @@ echo "Committing files to git repository. This will take a while..."
 git commit -m "automated initial commit"
 
 # Add expected git remote
-git remote add origin "git@github.com:Braillest-Books/$(echo "$BOOK_NAME" | tr ' ' '-').git"
+git remote add origin "git@github.com:Braillest-Books/$BOOK_NAME.git"
 
 # Log success message.
 echo ""
@@ -356,7 +362,7 @@ echo "Successfully created book repository: $BRAILLEST_BOOKS_BOOK_DIR"
 # Tell user to create the remote repository on GitHub.
 echo ""
 echo "Please create the repository on GitHub:"
-echo "$(echo "$BOOK_NAME" | tr ' ' '-')"
+echo "$BOOK_NAME"
 echo ""
 echo "Then run the following command to push to the remote repository:"
 echo "git push origin master"

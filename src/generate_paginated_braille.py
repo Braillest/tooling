@@ -14,10 +14,10 @@ character_x_count = 32
 character_y_count = 26
 space_character = "\u2800"
 text_file_path = str(sys.argv[-1])
-braille_directory = "/data/braille/"
-formatted_braille_directory = "/data/formatted-braille/"
-paginated_braille_directory = "/data/paginated-braille/"
-back_translation_directory = "/data/back-translations/"
+braille_directory = "/data/2-braille/"
+back_translation_directory = "/data/3-back-translations/"
+formatted_braille_directory = "/data/4-formatted-braille/"
+paginated_braille_directory = "/data/5-paginated-braille/"
 remove_trailing_whitespace = True
 translation_table = ["braille-patterns.cti", "en-ueb-g2.ctb"]
 

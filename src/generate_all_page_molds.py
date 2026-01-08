@@ -31,7 +31,7 @@ async def main():
     text_file_path = str(sys.argv[-1])
     text_filename = os.path.basename(text_file_path)
     text_filename = os.path.splitext(text_filename)[0]
-    paginated_braille_directory = "/data/paginated-braille/" + text_filename + "/"
+    paginated_braille_directory = "/data/5-paginated-braille/" + text_filename + "/"
 
     max_concurrent_tasks = os.cpu_count()
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
