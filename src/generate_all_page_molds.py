@@ -33,12 +33,28 @@ async def main():
     text_filename = os.path.splitext(text_filename)[0]
     paginated_braille_directory = "/data/5-paginated-braille/" + text_filename + "/"
 
+    # Check if text_file_path exists.
+    if not os.path.exists(text_file_path):
+        print("Text file does not exist")
+        print("Expected path: " + text_file_path)
+        print("Current directory: " + os.getcwd())
+        print("Please run this script at the root of the braillest/tooling repo after generating all files for creating molds for a book")
+        sys.exit(1)
+
     max_concurrent_tasks = os.cpu_count()
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
     print("Generating paginated braille...")
     tasks = [run_script("/braillest/generate_paginated_braille.py", text_file_path, semaphore)]
     result = await asyncio.gather(*tasks)
+
+    # Check if paginated_braille_directory was created/exists.
+    if not os.path.exists(paginated_braille_directory):
+        print("Paginated braille directory does not exist")
+        print("Expected path: " + paginated_braille_directory)
+        print("Current directory: " + os.getcwd())
+        print("Please run this script at the root of the braillest/tooling repo after generating all files for creating molds for a book")
+        sys.exit(1)
 
     print("Generating page molds...")
     paginated_braille_file_paths = [os.path.join(paginated_braille_directory, f) for f in os.listdir(paginated_braille_directory) if os.path.isfile(os.path.join(paginated_braille_directory, f))]

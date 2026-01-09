@@ -3,7 +3,7 @@
 # Initialize variables.
 CONTAINER_NAME="braillest_tooling"
 REPO_NAME="braillest/tooling"
-COVER_ART_SOURCE_FILE="//html/cover-art.html"
+COVER_ART_SOURCE_FILE="/html/cover-art.html"
 BASE_STLS_DIR="./data/0-base-stls"
 TEXTS_DIR="./data/1-texts"
 BRAILLE_DIR="./data/2-braille"
@@ -47,21 +47,18 @@ if [ $? -ne 0 ]; then
 fi
 
 # Validate gh is installed.
-docker exec -it $CONTAINER_NAME gh auth status > /dev/null 2>&1
+docker exec -it $CONTAINER_NAME sh -c "gh auth status" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "gh is not installed"
     exit 1
 fi
 
 # Validate gh is authenticated.
-docker exec -it $CONTAINER_NAME gh auth status > /dev/null 2>&1
+docker exec -it $CONTAINER_NAME sh -c "gh auth status" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     echo "gh is not authenticated"
     exit 1
 fi
-
-echo "gh is authenticated"
-exit 1
 
 # Validate base stls directory exists.
 if [ ! -d "$BASE_STLS_DIR" ]; then
@@ -164,6 +161,9 @@ FORMATTED_BRAILLE_BOOK_FILE="$FORMATTED_BRAILLE_DIR/$BOOK_NAME.txt"
 PAGINATED_BRAILLE_BOOK_DIR="$PAGINATED_BRAILLE_DIR/$BOOK_NAME"
 BRAILLE_MOLDS_BOOK_DIR="$BRAILLE_MOLDS_DIR/$BOOK_NAME"
 
+# Run docker container to convert text file into all other formats.
+# docker exec "$CONTAINER_NAME" sh -c "python generate_all_page_molds.py '/data/1-texts/$BOOK_NAME.txt'"
+
 # Remove special characters.
 BOOK_NAME_ALPHANUMERIC=$(echo "$BOOK_NAME" | tr -cd '[:alnum:] ')
 
@@ -245,22 +245,22 @@ if [ -z "$(ls -A "$BRAILLE_MOLDS_BOOK_DIR" 2>/dev/null)" ]; then
     exit 1
 fi
 
-# Create braillest-books book directory if it does not exist.
-if [ ! -d "$BRAILLEST_BOOKS_BOOK_DIR" ]; then
-    mkdir -p "$BRAILLEST_BOOKS_BOOK_DIR"
+# Call tooling container to create GitHub repository if the directory does not already exist.
+if [ ! -d "./braillest-books/$BOOK_NAME" ]; then
+    docker exec "$CONTAINER_NAME" sh -c "cd /braillest-books && gh repo create 'Braillest-Books/$BOOK_NAME' --public --clone"
 fi
 
 # Divide BOOK_NAME into TITLE and AUTHOR making sure to handle the edge case where "by" might be used in the title.
 TITLE=${BOOK_NAME_ALPHANUMERIC% by *}
 AUTHOR=${BOOK_NAME_ALPHANUMERIC##* by }
-COVER_ART_OUTPUT_FILE="//braillest-books/$BOOK_NAME/cover-art.jpg"
+COVER_ART_OUTPUT_FILE="/braillest-books/$BOOK_NAME/cover-art.jpg"
 SELECTOR="#book-title"
 
 # Create query string.
 QUERY_STRING="title=$(echo "$TITLE" | sed 's/ /%20/g')&author=$(echo "$AUTHOR" | sed 's/ /%20/g')"
 
 # Call docker container to create cover art image with TITLE and AUTHOR.
-docker exec "$CONTAINER_NAME" python generate_cover_art.py "$COVER_ART_SOURCE_FILE" "$QUERY_STRING" "$SELECTOR" "$COVER_ART_OUTPUT_FILE"
+docker exec "$CONTAINER_NAME" sh -c "python generate_cover_art.py '$COVER_ART_SOURCE_FILE' '$QUERY_STRING' '$SELECTOR' '$COVER_ART_OUTPUT_FILE'"
 
 BRAILLEST_BOOKS_BOOK_BASE_STLS_DIR="$BRAILLEST_BOOKS_BOOK_DIR/0-base-stls"
 BRAILLEST_BOOKS_BOOK_TEXTS_DIR="$BRAILLEST_BOOKS_BOOK_DIR/1-texts"
@@ -349,39 +349,21 @@ echo "![Cover Art](cover-art.jpg)" > "$BRAILLEST_BOOKS_BOOK_DIR/README.md"
 echo "*.zip" > "$BRAILLEST_BOOKS_BOOK_DIR/.gitignore"
 
 # Call tooling container to zip molds.
-docker exec "$CONTAINER_NAME" python zip_molds.py "//$BRAILLEST_BOOKS_BOOK_BRAILLE_MOLDS_DIR" "//$BRAILLEST_BOOKS_BOOK_DIR"
-
-# Initialize git repository in braillest-books book directory.
-git init "$BRAILLEST_BOOKS_BOOK_DIR"
-
-# Change to the braillest-books book directory.
-cd "$BRAILLEST_BOOKS_BOOK_DIR"
+docker exec "$CONTAINER_NAME" sh -c "python zip_molds.py '/braillest-books/$BOOK_NAME/6-braille-molds' '/braillest-books/$BOOK_NAME'"
 
 # Log message to the user that this will take a while.
 echo "Adding files to git repository. This will take a while..."
 
 # Add all files to the newly created child git repository.
-git add .
+cd "$BRAILLEST_BOOKS_BOOK_DIR" && git add .
 
 # Log message to the user that this will take a while.
 echo "Committing files to git repository. This will take a while..."
 
 # Commit all files to the newly created child git repository.
-git commit -m "automated initial commit"
+cd "$BRAILLEST_BOOKS_BOOK_DIR" && git commit -m "automated initial commit"
 
-# Add expected git remote
-git remote add origin "git@github.com:Braillest-Books/$BOOK_NAME.git"
-
-# Log success message.
-echo ""
-echo "Successfully created book repository: $BRAILLEST_BOOKS_BOOK_DIR"
-
-# Tell user to create the remote repository on GitHub.
-echo ""
-echo "Please create the repository on GitHub:"
-echo "$BOOK_NAME"
-echo ""
-echo "Then run the following command to push to the remote repository:"
-echo "git push origin master"
+# Push all files to the newly created git repository.
+cd "$BRAILLEST_BOOKS_BOOK_DIR" && git push origin master
 
 exit 0
