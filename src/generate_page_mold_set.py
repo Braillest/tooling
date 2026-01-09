@@ -116,55 +116,37 @@ for line_index, line in enumerate(lines[0:cell_y_count]):
         x_offset += cell_w
 
 print(time.time() - start)
+
+print("Generating dots")
+dot_template = Sphere(dot_r, arc_size1=0)
+dot_list = [loc * dot_template for loc in Locations(dot_coords)]
+dot_object = Compound(children=dot_list)
+print(time.time() - start)
+
 print("Generating positive mold")
 start = time.time()
 
 with BuildPart() as positive_mold:
 
+    print("Importing positive mold")
+    start = time.time()
     importer = Mesher()
     imported_mesh = importer.read(base_positive_mold_file_path)
-
-    # Add to BuildPart
     with Locations((positive_mold_w/2, positive_mold_h/2, 0)):
         add(imported_mesh)
+    print(time.time() - start)
 
-    # Add dots
-    with Locations(dot_coords):
-        Sphere(dot_r, arc_size1=0, mode=Mode.ADD)
+    print("Adding dots")
+    start = time.time()
+    add(dot_object, mode=Mode.ADD)
+    print(time.time() - start)
 
-    # Account for mold shrinkage for dimensional accuracy
-    scaled_mold = scale(positive_mold.part, scaling_factor)
-    export_stl(scaled_mold, positive_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
+    print("Scaling mold")
+    start = time.time()
+    scaled_mold = positive_mold.part.scale(scaling_factor)
+    print(time.time() - start)
 
-print(time.time() - start)
-# print("Generating negative mold")
-# start = time.time()
-
-# with BuildPart() as negative_mold:
-
-#     # imported_mesh = import_stl(base_negative_mold_file_path)
-#     importer = Mesher()
-#     imported_mesh = importer.read(base_negative_mold_file_path)
-
-#     # Rotate about Y axis by 180 degrees
-#     target_location = Location(
-#         (negative_mold_w/2, negative_mold_h/2, negative_mold_d),
-#         (0, 180, 0)
-#     )
-
-#     # Add to BuildPart
-#     with Locations(target_location):
-#         add(imported_mesh)
-
-#     # Subtract holes
-#     with Locations(hole_coords):
-#         Hole(hole_r, hole_d, mode=Mode.SUBTRACT)
-
-#     # Rotate about Y axis by 180 degrees
-#     negative_mold.part = negative_mold.part.rotate(Axis.Y, 180)
-
-#     # Account for mold shrinkage for dimensional accuracy
-#     scaled_mold = scale(negative_mold.part, scaling_factor)
-#     export_stl(scaled_mold, negative_mold_file_path, tolerance = 0.1, angular_tolerance = 1)
-
-# print(time.time() - start)
+    print("Exporting mold")
+    start = time.time()
+    export_stl(scaled_mold, positive_mold_file_path, tolerance=0.1, angular_tolerance=1)
+    print(time.time() - start)
