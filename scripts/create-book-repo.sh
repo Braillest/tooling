@@ -46,6 +46,23 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Validate gh is installed.
+docker exec -it $CONTAINER_NAME gh auth status > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "gh is not installed"
+    exit 1
+fi
+
+# Validate gh is authenticated.
+docker exec -it $CONTAINER_NAME gh auth status > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "gh is not authenticated"
+    exit 1
+fi
+
+echo "gh is authenticated"
+exit 1
+
 # Validate base stls directory exists.
 if [ ! -d "$BASE_STLS_DIR" ]; then
     echo "Base stls directory does not exist"

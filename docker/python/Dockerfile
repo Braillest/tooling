@@ -25,6 +25,7 @@ RUN pip install bs4
 RUN pip install playwright
 RUN playwright install chromium
 RUN playwright install-deps
+RUN apt install -y gh
 
 WORKDIR /braillest
 
