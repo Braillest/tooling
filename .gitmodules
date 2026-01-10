@@ -7,3 +7,6 @@
 [submodule "braillest-books/Dracula-by-Bram-Stoker"]
 	path = braillest-books/Dracula-by-Bram-Stoker
 	url = https://github.com/Braillest-Books/Dracula-by-Bram-Stoker
+[submodule "braillest-books/Middlemarch-by-George-Eliot"]
+	path = braillest-books/Middlemarch-by-George-Eliot
+	url = https://github.com/Braillest-Books/Middlemarch-by-George-Eliot
