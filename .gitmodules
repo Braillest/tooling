@@ -19,3 +19,6 @@
 [submodule "braillest-books/Moby-Dick-Or-The-Whale-by-Herman-Melville"]
 	path = braillest-books/Moby-Dick-Or-The-Whale-by-Herman-Melville
 	url = https://github.com/Braillest-Books/Moby-Dick-Or-The-Whale-by-Herman-Melville.git
+[submodule "braillest-books/Pride-and-Prejudice-by-Jane-Austen"]
+	path = braillest-books/Pride-and-Prejudice-by-Jane-Austen
+	url = https://github.com/Braillest-Books/Pride-and-Prejudice-by-Jane-Austen.git
