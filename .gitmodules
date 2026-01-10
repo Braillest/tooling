@@ -22,3 +22,21 @@
 [submodule "braillest-books/Pride-and-Prejudice-by-Jane-Austen"]
 	path = braillest-books/Pride-and-Prejudice-by-Jane-Austen
 	url = https://github.com/Braillest-Books/Pride-and-Prejudice-by-Jane-Austen.git
+[submodule "braillest-books/The-Strange-Case-of-Dr-Jekyll-and-Mr-Hyde-by-Robert-Louis-Stevenson"]
+	path = braillest-books/The-Strange-Case-of-Dr-Jekyll-and-Mr-Hyde-by-Robert-Louis-Stevenson
+	url = https://github.com/Braillest-Books/The-Strange-Case-of-Dr-Jekyll-and-Mr-Hyde-by-Robert-Louis-Stevenson.git
+[submodule "braillest-books/Alices-Adventures-in-Wonderland-by-Lewis-Carroll"]
+	path = braillest-books/Alices-Adventures-in-Wonderland-by-Lewis-Carroll
+	url = https://github.com/Braillest-Books/Alices-Adventures-in-Wonderland-by-Lewis-Carroll.git
+[submodule "braillest-books/A-Room-with-a-View-by-E-M-Forster"]
+	path = braillest-books/A-Room-with-a-View-by-E-M-Forster
+	url = https://github.com/Braillest-Books/A-Room-with-a-View-by-E-M-Forster.git
+[submodule "braillest-books/Crime-and-Punishment-by-Fyodor-Dostoyevsky"]
+	path = braillest-books/Crime-and-Punishment-by-Fyodor-Dostoyevsky
+	url = https://github.com/Braillest-Books/Crime-and-Punishment-by-Fyodor-Dostoyevsky.git
+[submodule "braillest-books/The-Blue-Castle-by-L-M-Montgomery"]
+	path = braillest-books/The-Blue-Castle-by-L-M-Montgomery
+	url = https://github.com/Braillest-Books/The-Blue-Castle-by-L-M-Montgomery.git
+[submodule "braillest-books/The-King-in-Yellow-by-Robert-W-Chambers"]
+	path = braillest-books/The-King-in-Yellow-by-Robert-W-Chambers
+	url = https://github.com/Braillest-Books/The-King-in-Yellow-by-Robert-W-Chambers.git
