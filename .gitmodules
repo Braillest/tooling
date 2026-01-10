@@ -10,3 +10,12 @@
 [submodule "braillest-books/Middlemarch-by-George-Eliot"]
 	path = braillest-books/Middlemarch-by-George-Eliot
 	url = https://github.com/Braillest-Books/Middlemarch-by-George-Eliot
+[submodule "braillest-books/Reminiscences-of-a-Stock-Operator-by-Edwin-Lefevre"]
+	path = braillest-books/Reminiscences-of-a-Stock-Operator-by-Edwin-Lefevre
+	url = https://github.com/Braillest-Books/Reminiscences-of-a-Stock-Operator-by-Edwin-Lefevre.git
+[submodule "braillest-books/The-Great-Gatsby-by-F-Scott-Fitzgerald"]
+	path = braillest-books/The-Great-Gatsby-by-F-Scott-Fitzgerald
+	url = https://github.com/Braillest-Books/The-Great-Gatsby-by-F-Scott-Fitzgerald.git
+[submodule "braillest-books/Moby-Dick-Or-The-Whale-by-Herman-Melville"]
+	path = braillest-books/Moby-Dick-Or-The-Whale-by-Herman-Melville
+	url = https://github.com/Braillest-Books/Moby-Dick-Or-The-Whale-by-Herman-Melville.git
