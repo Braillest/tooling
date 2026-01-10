@@ -162,7 +162,7 @@ PAGINATED_BRAILLE_BOOK_DIR="$PAGINATED_BRAILLE_DIR/$BOOK_NAME"
 BRAILLE_MOLDS_BOOK_DIR="$BRAILLE_MOLDS_DIR/$BOOK_NAME"
 
 # Run docker container to convert text file into all other formats.
-# docker exec "$CONTAINER_NAME" sh -c "python generate_all_page_molds.py '/data/1-texts/$BOOK_NAME.txt'"
+docker exec "$CONTAINER_NAME" sh -c "python generate_all_page_molds.py '/data/1-texts/$BOOK_NAME.txt'"
 
 # Remove special characters.
 BOOK_NAME_ALPHANUMERIC=$(echo "$BOOK_NAME" | tr -cd '[:alnum:] ')
