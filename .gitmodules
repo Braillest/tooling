@@ -1,0 +1,12 @@
+[submodule "braillest-books/The-Iliad-by-Homer"]
+	path = braillest-books/The-Iliad-by-Homer
+	url = https://github.com/Braillest-Books/The-Iliad-by-Homer.git
+[submodule "braillest-books/Frankenstein-Or-The-Modern-Prometheus-by-Mary-Wollstonecraft-Shelley"]
+	path = braillest-books/Frankenstein-Or-The-Modern-Prometheus-by-Mary-Wollstonecraft-Shelley
+	url = https://github.com/Braillest-Books/Frankenstein-Or-The-Modern-Prometheus-by-Mary-Wollstonecraft-Shelley.git
+[submodule "braillest-books/Middlemarch-by-George-Eliot"]
+	path = braillest-books/Middlemarch-by-George-Eliot
+	url = https://github.com/Braillest-Books/Middlemarch-by-George-Eliot
+[submodule "braillest-books/Dracula-by-Bram-Stoker"]
+	path = braillest-books/Dracula-by-Bram-Stoker
+	url = https://github.com/Braillest-Books/Dracula-by-Bram-Stoker

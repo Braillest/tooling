@@ -355,15 +355,20 @@ docker exec "$CONTAINER_NAME" sh -c "python zip_molds.py '/braillest-books/$BOOK
 echo "Adding files to git repository. This will take a while..."
 
 # Add all files to the newly created child git repository.
-cd "$BRAILLEST_BOOKS_BOOK_DIR" && git add .
+cd "$BRAILLEST_BOOKS_BOOK_DIR"
+git add .
 
 # Log message to the user that this will take a while.
 echo "Committing files to git repository. This will take a while..."
 
 # Commit all files to the newly created child git repository.
-cd "$BRAILLEST_BOOKS_BOOK_DIR" && git commit -m "automated initial commit"
+git commit -m "automated initial commit"
 
 # Push all files to the newly created git repository.
-cd "$BRAILLEST_BOOKS_BOOK_DIR" && git push origin master
+git push origin master
+
+# Add the newly created child git repository as a submodule to the root tooling repository.
+cd ../../
+git submodule add "https://github.com/Braillest-Books/$BOOK_NAME.git" "$BRAILLEST_BOOKS_BOOK_DIR"
 
 exit 0
