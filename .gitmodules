@@ -40,3 +40,27 @@
 [submodule "braillest-books/The-King-in-Yellow-by-Robert-W-Chambers"]
 	path = braillest-books/The-King-in-Yellow-by-Robert-W-Chambers
 	url = https://github.com/Braillest-Books/The-King-in-Yellow-by-Robert-W-Chambers.git
+[submodule "braillest-books/Little-Women-by-Louisa-May-Alcott"]
+	path = braillest-books/Little-Women-by-Louisa-May-Alcott
+	url = https://github.com/Braillest-Books/Little-Women-by-Louisa-May-Alcott.git
+[submodule "braillest-books/A-Tale-of-Two-Cities-by-Charles-Dickens"]
+	path = braillest-books/A-Tale-of-Two-Cities-by-Charles-Dickens
+	url = https://github.com/Braillest-Books/A-Tale-of-Two-Cities-by-Charles-Dickens.git
+[submodule "braillest-books/A-Modest-Proposal-by-Jonathan-Swift"]
+	path = braillest-books/A-Modest-Proposal-by-Jonathan-Swift
+	url = https://github.com/Braillest-Books/A-Modest-Proposal-by-Jonathan-Swift.git
+[submodule "braillest-books/Adventures-of-Huckleberry-Finn-by-Mark-Twain"]
+	path = braillest-books/Adventures-of-Huckleberry-Finn-by-Mark-Twain
+	url = https://github.com/Braillest-Books/Adventures-of-Huckleberry-Finn-by-Mark-Twain.git
+[submodule "braillest-books/Great-Expectations-by-Charles-Dickens"]
+	path = braillest-books/Great-Expectations-by-Charles-Dickens
+	url = https://github.com/Braillest-Books/Great-Expectations-by-Charles-Dickens.git
+[submodule "braillest-books/Meditations-by-Marcus-Aurelius"]
+	path = braillest-books/Meditations-by-Marcus-Aurelius
+	url = https://github.com/Braillest-Books/Meditations-by-Marcus-Aurelius.git
+[submodule "braillest-books/Metamorphosis-by-Franz-Kafka"]
+	path = braillest-books/Metamorphosis-by-Franz-Kafka
+	url = https://github.com/Braillest-Books/Metamorphosis-by-Franz-Kafka.git
+[submodule "braillest-books/Anna-Karenina-by-Leo-Tolstoy"]
+	path = braillest-books/Anna-Karenina-by-Leo-Tolstoy
+	url = https://github.com/Braillest-Books/Anna-Karenina-by-Leo-Tolstoy.git
