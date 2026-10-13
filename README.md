@@ -51,6 +51,27 @@ Pull requests: Read/Write
 - Generate molds: `./scripts/generate_all_page_molds.sh <text_file>`
 > ex) `./scripts/generate_all_page_molds.sh "./data/1-texts/Dracula by Bram Stoker.txt"`
 
+## Base molds
+
+Page molds are built on top of the base castle zip molds in `data/0-base-stls/`. That directory is gitignored, so a fresh clone won't have them. Restore the v9.8 base molds from git history with:
+
+```
+./scripts/restore-base-stls.sh
+```
+
+## Cropping short pages
+
+Short documents such as menus, flyers, and signs often only use the top part of a page. Pass `--crop` to trim the blank area below the last braille line, which saves filament and print time.
+
+> ex) `python generate_all_page_molds.py --crop /data/1-texts/menu.txt`
+> ex) `python generate_page_mold_set.py --crop --crop-margin 15 /data/5-paginated-braille/menu/0001.txt`
+
+- Cropping is off by default.
+- `--crop-margin` (default 10mm) is the minimum distance between the lowest dot and the cut.
+- The cut snaps down to the 10mm castle zip grid, so the positive's teeth and the negative's notches still interlock.
+- Only the bottom is trimmed. Line up the top edge of the paper with the top of the molds; the rest of the sheet hangs past the cut.
+- The universal negative no longer fits a cropped positive, so each cropped page also gets its own `XXXX-negative.stl` next to `XXXX-positive.stl`. Pages that fill the whole page are left uncropped and don't get a separate negative.
+
 # Samples
 
 ![An embossing sample using depth of field to focus on braille dots in the center of the page.](docs/img/samples/20250821_170315.jpg)
