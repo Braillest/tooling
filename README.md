@@ -72,6 +72,19 @@ Short documents such as menus, flyers, and signs often only use the top part of 
 - Only the bottom is trimmed. Line up the top edge of the paper with the top of the molds; the rest of the sheet hangs past the cut.
 - The universal negative no longer fits a cropped positive, so each cropped page also gets its own `XXXX-negative.stl` next to `XXXX-positive.stl`. Pages that fill the whole page are left uncropped and don't get a separate negative.
 
+## Universal negative holes
+
+By default the negative is a flat plate. Pass `--neghole` to give it a hole at every possible dot position in the full 32x26 cell grid (4992 holes, or only the whole rows kept by `--crop`). One holed negative then works with any positive page.
+
+> ex) `python generate_all_page_molds.py --crop --neghole /data/1-texts/menu.txt`
+
+- Each hole is a spherical pocket on the paper side plus a 1.5mm throat through the top. The pocket clears the dot with the paper wrapped around it: radius = dot radius (0.75) + `--paper-thickness` + `--neghole-tolerance` / 2. It's centered on the dot's sphere center, with the negative resting on the paper.
+- `--paper-thickness` defaults to 0.33mm (110 lb index cardstock). Use about 0.25 for braille paper or 0.2 for copy paper. `--neghole-tolerance` (default 0.25mm) is extra diameter for print tolerance and plate misalignment.
+- At 0.33mm the pocket opening at the paper face is 2.30mm, leaving a 0.2mm wall between pockets at the 2.5mm dot spacing. A warning is printed when the paper is thick enough that neighboring pockets merge (about 0.45mm and up).
+- The positive (dot size, spacing, height) is unchanged. All clearance is in the negative.
+- The holed negative is scaled by the same factor as the positive (1.005), so every hole sits exactly over its dot position and the castle zip still interlocks.
+- The negative is exported with a finer mesh (0.02mm) so faceting doesn't eat the clearance. Expect a ~30MB STL and several minutes per negative. It's the same for every page of a given crop height, so you only need to print one.
+
 # Samples
 
 ![An embossing sample using depth of field to focus on braille dots in the center of the page.](docs/img/samples/20250821_170315.jpg)
