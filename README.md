@@ -51,6 +51,15 @@ Pull requests: Read/Write
 - Generate molds: `./scripts/generate_all_page_molds.sh <text_file>`
 > ex) `./scripts/generate_all_page_molds.sh "./data/1-texts/Dracula by Bram Stoker.txt"`
 
+## Line breaks and page breaks
+
+`generate_paginated_braille.py` (and `generate_all_page_molds.py`) treat blank lines as paragraph breaks and reflow each paragraph to 32 cells. Single newlines inside a paragraph are treated as spaces, which suits hard-wrapped Project Gutenberg texts.
+
+- `--preserve-line-breaks`: every line of the text starts a new braille line. Use it for verse, menus, lists, and text from `pdf_to_text.py`. Lines longer than 32 cells still wrap. Off by default, so existing books render the same.
+- Form feed (`\f`): starts a new braille page, on its own line or inside a line. No blank page is added when the text is already at the top of a page. Always on; Gutenberg texts don't contain form feeds.
+
+> ex) `python generate_all_page_molds.py --preserve-line-breaks /data/1-texts/menu.txt`
+
 # Samples
 
 ![An embossing sample using depth of field to focus on braille dots in the center of the page.](docs/img/samples/20250821_170315.jpg)
