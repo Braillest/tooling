@@ -10,6 +10,9 @@ from build123d import *
 parser = argparse.ArgumentParser(description="Generate the mold set for a single paginated braille page.")
 parser.add_argument("braille_file_path")
 parser.add_argument("--crop", action="store_true", help="Trim the unused blank area below the last braille line from the positive mold and write a matching cropped negative mold.")
+parser.add_argument("--neghole", action="store_true", help="Give the negative mold a through hole at every possible dot position (32x26 cells, 6 dots each) so one negative works with any positive page.")
+parser.add_argument("--paper-thickness", type=float, default=0.33, help="Thickness in mm of the paper or card being embossed, used to size --neghole pockets. Default: 0.33 (110 lb index cardstock). Braille paper is about 0.25.")
+parser.add_argument("--neghole-tolerance", type=float, default=0.25, help="Extra pocket diameter in mm for printer tolerance and plate misalignment. Default: 0.25")
 parser.add_argument("--crop-margin", type=float, default=10.0, help="Minimum distance in mm between the lowest dot and the cut. The cut snaps down to the castle zip grid. Default: 10")
 args = parser.parse_args()
 
@@ -173,19 +176,59 @@ with BuildPart() as positive_mold:
     export_stl(scaled_mold, positive_mold_file_path, tolerance=0.1, angular_tolerance=1)
     print(time.time() - start)
 
-# The negative mold is universal unless cropped, in which case each page gets a matching cropped negative.
-if crop_y is not None:
+# The negative mold is universal unless cropped or holed, in which case each page gets its own negative.
+if crop_y is not None or args.neghole:
 
-    print("Generating cropped negative mold")
+    print("Generating negative mold")
     start = time.time()
+
+    # Universal holes: one through hole per possible dot position in the full cell grid, on the same grid as the dots.
+    # Only whole cells above the crop line are included, so no hole is cut by the crop.
+    # Each hole is a spherical pocket that clears the dot wrapped in paper (dot radius + paper thickness + tolerance),
+    # centered on the dot's center, plus a dot sized throat through the top of the plate.
+    # The negative rests on the paper, or on the rails if the paper is thinner than the rail step.
+    universal_hole_coords = []
+    if args.neghole:
+        neghole_r = dot_r + args.paper_thickness + args.neghole_tolerance / 2
+        throat_r = dot_r
+        negative_bottom_z = positive_mold_backplate_d + max(args.paper_thickness, paper_d)
+        # The dot is a hemisphere whose flat base is the bottom of its bounding box; its sphere center sits there.
+        dot_sphere_center_z = positive_mold_backplate_d + (dot_d / 2) + dot_template.bounding_box().min.Z
+        pocket_center_z = dot_sphere_center_z - negative_bottom_z
+        # The pocket's widest point is usually below the plate, so check the opening at the paper face.
+        face_r = math.sqrt(max(neghole_r ** 2 - pocket_center_z ** 2, 0)) if pocket_center_z < 0 else neghole_r
+        if 2 * face_r > cell_spacing - 0.15:
+            print(f"Warning: pocket opening {2 * face_r:.2f}mm leaves less than 0.15mm between pockets at {cell_spacing}mm dot spacing; neighboring pockets in a cell will merge at the paper face.")
+        for row in range(cell_y_count):
+            y_offset = (cell_y_count - row) * cell_h + cell_padding_y
+            if crop_y is not None and y_offset - neghole_r < crop_y:
+                continue
+            for column in range(cell_x_count):
+                x_offset = slot_w + paper_tolerance + (3 * cell_w) + cell_padding_x + column * cell_w
+                for dx, dy in [(0, 2), (0, 1), (0, 0), (1, 2), (1, 1), (1, 0)]:
+                    universal_hole_coords.append((x_offset + dx * cell_spacing, y_offset + dy * cell_spacing))
+        print(f"Negative holes: {len(universal_hole_coords)} (pocket sphere diameter {2 * neghole_r:.2f}mm, opening at paper face {2 * face_r:.2f}mm, throat diameter {2 * throat_r:.2f}mm)")
 
     with BuildPart() as negative_mold:
         importer = Mesher()
         imported_mesh = importer.read(base_negative_mold_file_path)
         with Locations((negative_mold_w/2, negative_mold_h/2, 0)):
             add(imported_mesh)
-        with Locations((negative_mold_w/2, crop_y, -1)):
-            Box(2 * negative_mold_w, 2 * negative_mold_h, 10, align=(Align.CENTER, Align.MIN, Align.MIN), mode=Mode.INTERSECT)
+        if crop_y is not None:
+            with Locations((negative_mold_w/2, crop_y, -1)):
+                Box(2 * negative_mold_w, 2 * negative_mold_h, 10, align=(Align.CENTER, Align.MIN, Align.MIN), mode=Mode.INTERSECT)
+        if universal_hole_coords:
+            pocket_template = Sphere(neghole_r, mode=Mode.PRIVATE)
+            throat_template = Cylinder(throat_r, negative_mold_d + 2, align=(Align.CENTER, Align.CENTER, Align.MIN), mode=Mode.PRIVATE)
+            pockets = [loc * pocket_template for loc in Locations([(x, y, pocket_center_z) for x, y in universal_hole_coords])]
+            throats = [loc * throat_template for loc in Locations([(x, y, -1) for x, y in universal_hole_coords])]
+            add(Compound(children=pockets + throats), mode=Mode.SUBTRACT)
 
-    export_stl(negative_mold.part, negative_mold_file_path, tolerance=0.1, angular_tolerance=1)
+    negative_part = negative_mold.part
+    if args.neghole:
+        # Scale like the positive so every hole sits exactly over its dot position in the scaled positive.
+        negative_part = negative_part.scale(scaling_factor)
+
+    # Pockets need a finer mesh than the dots: a 0.1mm chord error would eat most of the clearance.
+    export_stl(negative_part, negative_mold_file_path, tolerance=0.02 if args.neghole else 0.1, angular_tolerance=0.5 if args.neghole else 1)
     print(time.time() - start)

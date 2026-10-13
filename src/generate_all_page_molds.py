@@ -7,12 +7,17 @@ import sys
 parser = argparse.ArgumentParser(description="Translate, paginate, and generate page molds for a text file.")
 parser.add_argument("text_file_path")
 parser.add_argument("--crop", action="store_true", help="Trim unused blank area below the last braille line of each page (positive + matching negative).")
+parser.add_argument("--neghole", action="store_true", help="Give each negative mold a through hole at every possible dot position.")
+parser.add_argument("--paper-thickness", type=float, default=0.33, help="Paper or card thickness in mm used to size --neghole pockets. Default: 0.33")
+parser.add_argument("--neghole-tolerance", type=float, default=0.25, help="Extra pocket diameter in mm for --neghole. Default: 0.25")
 parser.add_argument("--crop-margin", type=float, default=10.0, help="Minimum distance in mm between the lowest dot and the cut. Default: 10")
 args = parser.parse_args()
 
 mold_args = []
 if args.crop:
-    mold_args = ["--crop", "--crop-margin", str(args.crop_margin)]
+    mold_args += ["--crop", "--crop-margin", str(args.crop_margin)]
+if args.neghole:
+    mold_args += ["--neghole", "--paper-thickness", str(args.paper_thickness), "--neghole-tolerance", str(args.neghole_tolerance)]
 
 async def run_script(script_name, file_path, semaphore, extra_args=[]):
 
