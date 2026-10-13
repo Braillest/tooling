@@ -57,6 +57,8 @@ CHAPTER_PATTERN = re.compile(
     rf"^(?:(?:chapter|book|part|section)\s+(?:\d+|{ROMAN_NUMERAL}|{NUMBER_WORDS})\b.*|{ROMAN_NUMERAL}\.?|\d{{1,3}}\.?)$",
     re.IGNORECASE,
 )
+GUTENBERG_START = re.compile(r"\*\*\*\s*START OF (?:THE|THIS) PROJECT GUTENBERG", re.IGNORECASE)
+GUTENBERG_END = re.compile(r"\*\*\*\s*END OF (?:THE|THIS) PROJECT GUTENBERG|^End of (?:the )?Project Gutenberg", re.IGNORECASE)
 TERMINAL_PUNCTUATION = tuple(".!?:;\u2019\u201d'\")]\u2026")
 
 
@@ -106,7 +108,17 @@ def extract_lines(page, columns):
             text = "".join(s["text"] for s in line["spans"])
             size = max(s["size"] for s in spans)
             bold = any(s["flags"] & 16 for s in spans)
-            lines.append({"text": text, "bbox": line["bbox"], "size": round(size, 1), "bold": bold, "block": block_index})
+            entry = {"text": text, "bbox": tuple(line["bbox"]), "size": round(size, 1), "bold": bold, "block": block_index}
+            # Lines split at the same baseline (e.g. around an inline margin note) are one line.
+            previous = lines[-1] if lines else None
+            if (previous is not None and previous["block"] == block_index
+                    and abs(previous["bbox"][1] - entry["bbox"][1]) < 2 and entry["bbox"][0] >= previous["bbox"][2] - 1):
+                previous["text"] = previous["text"].rstrip() + " " + text.lstrip()
+                previous["bbox"] = (previous["bbox"][0], min(previous["bbox"][1], entry["bbox"][1]),
+                                    entry["bbox"][2], max(previous["bbox"][3], entry["bbox"][3]))
+                previous["size"] = max(previous["size"], entry["size"])
+                continue
+            lines.append(entry)
     return lines
 
 
@@ -128,10 +140,23 @@ def find_running_lines(pages_lines, page_heights, margin_ratio, min_repeat_ratio
     return {key for key, count in counts.items() if count >= threshold}
 
 
+PAGE_ANCHOR = re.compile(r"^\s*\[(?:\d{1,4}|[ivxlcdm]{1,7})\]\s*$", re.IGNORECASE)
+
+
 def strip_margins(lines, height, running_keys, margin_ratio, body_size):
-    """Remove running headers/footers and page numbers. Lines larger than body text (chapter headings) are kept."""
+    """Remove running headers/footers and page numbers. Lines larger than body text (chapter headings) are kept.
+    Also removes original edition page anchors such as "[23]" set smaller than body text (common in Gutenberg PDFs)."""
     kept, removed = [], []
+    body_bottom = max((l["bbox"][3] for l in lines if abs(l["size"] - body_size) < 0.6), default=height)
     for line in lines:
+        # Footnotes: small text below the body text that starts with a marker.
+        if (line["size"] <= body_size * 0.85 and line["bbox"][1] >= body_bottom - 1
+                and re.match(r"^\s*[\d*†‡§]+\s", line["text"])):
+            removed.append(line["text"].strip())
+            continue
+        if PAGE_ANCHOR.match(line["text"]) and line["size"] < body_size:
+            removed.append(line["text"].strip())
+            continue
         if in_margin_band(line, height, margin_ratio) and line["size"] <= body_size + 0.5 and (margin_key(line["text"]) in running_keys or is_page_number(line["text"])):
             removed.append(line["text"].strip())
         else:
@@ -145,19 +170,39 @@ def clean_line(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
+VERSE_LINE_BREAK = "\u2028"
+
+
 def is_heading_line(line, text, body_size):
     return line["size"] >= body_size * 1.15 or (line["bold"] and len(text) < 60)
 
 
-def group_paragraphs(lines, body_size):
+def group_paragraphs(lines, body_size, text_width):
     """Split one page's lines into paragraphs. Each paragraph: dict(lines=[...], heading=bool)."""
     body_lines = [l for l in lines if abs(l["size"] - body_size) < 0.6]
     left = statistics.median([l["bbox"][0] for l in body_lines]) if body_lines else 0
     line_height = statistics.median([l["bbox"][3] - l["bbox"][1] for l in body_lines]) if body_lines else body_size * 1.2
 
+    # Verse: runs of 3+ consecutive capitalized lines that end well short of the right margin keep their line breaks.
+    # Measured against the book's full line width, since a page of only verse has no full lines.
+    # Verse lines also start with a capital letter, which keeps ragged right prose out.
+    short = [l["bbox"][2] < left + text_width * 0.85 and abs(l["size"] - body_size) < 0.6
+             and bool(re.match(r"^[\W_]*[A-Z]", clean_line(l["text"]))) for l in lines]
+    verse = [False] * len(lines)
+    run_start = None
+    for index, is_short in enumerate(short + [False]):
+        if is_short and run_start is None:
+            run_start = index
+        elif not is_short and run_start is not None:
+            if index - run_start >= 3:
+                for j in range(run_start, index):
+                    verse[j] = True
+            run_start = None
+
     paragraphs = []
     current = None
     previous = None
+    previous_index = None
     pending_cap = None
     cap_bottom = -1
 
@@ -175,27 +220,36 @@ def group_paragraphs(lines, body_size):
             continue
 
         heading = is_heading_line(line, text, body_size)
+        in_verse = verse[index] and previous_index is not None and verse[previous_index]
         if pending_cap is not None:
             text = pending_cap + text
             pending_cap = None
             new_paragraph = True
+        elif in_verse and current is not None and not current["heading"]:
+            # Within a stanza: new paragraph only on a stanza gap. Lines keep their breaks.
+            new_paragraph = line["bbox"][1] - previous["bbox"][3] > line_height * 0.6
+            if not new_paragraph:
+                text = VERSE_LINE_BREAK + text
         else:
             wrapped_around_cap = line["bbox"][1] < cap_bottom
             new_paragraph = (
                 current is None
                 or heading != current["heading"]
-                or line["block"] != previous["block"]
-                or (not wrapped_around_cap and line["bbox"][0] - left > body_size * 0.8)  # first line indent
-                or line["bbox"][1] - previous["bbox"][3] > line_height * 0.6               # vertical gap
+                or (line["block"] != previous["block"]  # new block, unless the sentence clearly runs on
+                    and not (text[:1].islower() and not clean_line(previous["text"]).endswith(TERMINAL_PUNCTUATION)))
+                or (not wrapped_around_cap and not heading and line["bbox"][0] - left > body_size * 0.8)  # first line indent
+                or line["bbox"][1] - previous["bbox"][3] > (line_height * 0.6 if not heading else line["size"] * 1.5)  # vertical gap
             )
 
         if new_paragraph:
             if current is not None:
                 paragraphs.append(current)
-            current = {"lines": [text], "heading": heading}
+            current = {"lines": [text.lstrip(VERSE_LINE_BREAK)], "heading": heading, "size": line["size"]}
         else:
             current["lines"].append(text)
+            current["size"] = max(current["size"], line["size"])
         previous = line
+        previous_index = index
 
     if current is not None:
         paragraphs.append(current)
@@ -208,6 +262,9 @@ def join_lines(lines, hyphenated_words):
     for line in lines:
         if not text:
             text = line
+            continue
+        if line.startswith(VERSE_LINE_BREAK):
+            text += "\n" + line[1:]
             continue
         if text.endswith("\u00ad"):
             text = text[:-1] + line
@@ -235,6 +292,7 @@ def main():
     parser.add_argument("--margin", type=float, default=0.15, help="Fraction of page height at top and bottom searched for headers/footers. Default: 0.15")
     parser.add_argument("--repeat", type=float, default=0.3, help="Fraction of pages a margin line must repeat on to count as a running header/footer. Default: 0.3")
     parser.add_argument("--no-chapter-breaks", action="store_true", help="Don't insert form feeds before chapter headings.")
+    parser.add_argument("--keep-gutenberg-boilerplate", action="store_true", help="Keep the Project Gutenberg header and license text. By default everything before *** START OF ... and after *** END OF ... is dropped.")
     parser.add_argument("--ascii-quotes", action="store_true", help="Replace curly quotes with straight quotes.")
     parser.add_argument("--ocr", action="store_true", help="OCR pages that have images but no text. Requires tesseract.")
     parser.add_argument("--ocr-language", default="eng")
@@ -297,10 +355,14 @@ def main():
         for line in lines:
             hyphenated_words.update(w.lower() for w in re.findall(r"\b\w+-\w+\b", normalize_text(line["text"])))
 
+    # Full text line width: most lines in a book are full justified lines.
+    widths = sorted(l["bbox"][2] - l["bbox"][0] for lines in stripped_pages for l in lines if abs(l["size"] - body_size) < 0.6)
+    text_width = widths[int(len(widths) * 0.9)] if widths else 0
+
     # Build paragraphs across pages.
     paragraphs = []
     for lines in stripped_pages:
-        page_paragraphs = group_paragraphs(lines, body_size)
+        page_paragraphs = group_paragraphs(lines, body_size, text_width)
         if page_paragraphs and paragraphs and not paragraphs[-1]["heading"] and not page_paragraphs[0]["heading"]:
             previous_text = paragraphs[-1]["lines"][-1]
             next_text = page_paragraphs[0]["lines"][0]
@@ -309,19 +371,46 @@ def main():
                 page_paragraphs = page_paragraphs[1:]
         paragraphs.extend(page_paragraphs)
 
-    output = []
-    chapter_count = 0
+    texts = []
     for paragraph in paragraphs:
         text = join_lines(paragraph["lines"], hyphenated_words)
-        text = normalize_text(text, args.ascii_quotes).strip()
-        if not text:
-            continue
-        is_chapter = len(paragraph["lines"]) <= 2 and CHAPTER_PATTERN.match(text) and (
-            paragraph["heading"] or re.match(r"(?:chapter|book|part)\b", text, re.IGNORECASE))
-        if is_chapter and not args.no_chapter_breaks:
+        text = "\n".join(normalize_text(part, args.ascii_quotes).strip() for part in text.split("\n")).strip()
+        if text:
+            texts.append((text, paragraph))
+
+    # Project Gutenberg license header and footer.
+    boilerplate_removed = 0
+    if not args.keep_gutenberg_boilerplate:
+        starts = [i for i, (text, _) in enumerate(texts) if GUTENBERG_START.search(text)]
+        ends = [i for i, (text, _) in enumerate(texts) if GUTENBERG_END.search(text)]
+        first_kept = starts[0] + 1 if starts else 0
+        last_kept = ends[-1] if ends and ends[-1] > first_kept else len(texts)
+        boilerplate_removed = len(texts) - (last_kept - first_kept)
+        texts = texts[first_kept:last_kept]
+
+    output = []
+    chapter_count = 0
+    last_heading_key = None
+    body_since_heading = True
+    for text, paragraph in texts:
+        large_heading = paragraph["heading"] and paragraph["size"] >= body_size * 1.4 and len(paragraph["lines"]) <= 2
+        is_chapter = large_heading or (len(paragraph["lines"]) <= 2 and CHAPTER_PATTERN.match(text) and (
+            paragraph["heading"] or re.match(r"(?:chapter|book|part)\b", text, re.IGNORECASE)))
+        if is_chapter:
+            text = re.sub(r"(?<=[^\W\d])\d{1,2}$", "", text)  # footnote marker on a heading
+            heading_key = re.sub(r"\W+", " ", text).strip().lower()
+            if output and heading_key == last_heading_key and not body_since_heading:
+                continue  # same title repeated (half title page, then chapter head)
+            last_heading_key = heading_key
+            if not body_since_heading and output:
+                output.append(text)
+                continue  # several headings in a row share one break
+            body_since_heading = False
+        else:
+            body_since_heading = True
+        if is_chapter and not args.no_chapter_breaks and output:
             chapter_count += 1
-            if output:
-                output.append("\f")
+            output.append("\f")
         output.append(text)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
@@ -334,6 +423,8 @@ def main():
     print(f"Header/footer/page number lines removed: {removed_count}")
     print(f"Paragraphs: {len(output) - output.count(chr(12))}")
     print(f"Chapter breaks: {chapter_count}")
+    if boilerplate_removed:
+        print(f"Project Gutenberg boilerplate paragraphs removed: {boilerplate_removed}")
     if image_only_pages:
         print(f"Image only pages (no text layer): {image_only_pages}")
         if not args.ocr:
