@@ -22,6 +22,7 @@ RUN ldconfig
 # Install required packages
 RUN pip install requests
 RUN pip install bs4
+RUN pip install pymupdf
 RUN pip install playwright
 RUN playwright install chromium
 RUN playwright install-deps
