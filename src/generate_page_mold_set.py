@@ -1,3 +1,4 @@
+import argparse
 import sys
 import os
 import errno
@@ -6,13 +7,15 @@ import time
 from build123d import *
 
 # Handle command line arguments
-if len(sys.argv) != 2:
-    print("Usage: python generate_page_mold_set.py <braille_file_path>")
-    sys.exit(1)
+parser = argparse.ArgumentParser(description="Generate the mold set for a single paginated braille page.")
+parser.add_argument("braille_file_path")
+parser.add_argument("--crop", action="store_true", help="Trim the unused blank area below the last braille line from the positive mold and write a matching cropped negative mold.")
+parser.add_argument("--crop-margin", type=float, default=10.0, help="Minimum distance in mm between the lowest dot and the cut. The cut snaps down to the castle zip grid. Default: 10")
+args = parser.parse_args()
 
 # Validate argument file exists.
-if not os.path.isfile(sys.argv[-1]):
-    print("File does not exist: " + sys.argv[-1])
+if not os.path.isfile(args.braille_file_path):
+    print("File does not exist: " + args.braille_file_path)
     sys.exit(1)
 
 # Control globals
@@ -67,7 +70,7 @@ cell_y_count = max_cell_y_count - top_cell_padding_count - bottom_cell_padding_c
 
 print(cell_x_count, cell_y_count)
 
-braille_file_path = str(sys.argv[-1])
+braille_file_path = str(args.braille_file_path)
 page_number = os.path.basename(braille_file_path)
 page_number = os.path.splitext(page_number)[0]
 book_name = os.path.dirname(braille_file_path)
@@ -82,11 +85,11 @@ base_negative_mold_file_path = "/data/0-base-stls/Negative-Castle-Zip-Mold-v9.8.
 if not os.path.isfile(braille_file_path):
     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), braille_file_path)
 
-if not os.path.isfile(base_positive_mold_file_path):
-    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), base_positive_mold_file_path)
-
-if not os.path.isfile(base_negative_mold_file_path):
-    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), base_negative_mold_file_path)
+for base_mold_file_path in [base_positive_mold_file_path, base_negative_mold_file_path]:
+    if not os.path.isfile(base_mold_file_path):
+        print("Base mold not found: " + base_mold_file_path)
+        print("Run ./scripts/restore-base-stls.sh from the root of the repo to restore the v9.8 base molds from git history.")
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), base_mold_file_path)
 
 print("Reading in file")
 start = time.time()
@@ -117,6 +120,20 @@ for line_index, line in enumerate(lines[0:cell_y_count]):
 
 print(time.time() - start)
 
+# Determine crop line.
+# The castle zip teeth (positive) and notches (negative) alternate every 10mm along the long edges,
+# starting at the bottom edge of the mold. Cutting on that grid keeps the teeth and notches paired.
+# Paper is aligned to the top of the mold, so only the bottom is trimmed.
+crop_grid = 10
+crop_y = None
+if args.crop and dot_coords:
+    lowest_dot_edge = min(y for _, y, _ in dot_coords) - dot_r
+    crop_y = math.floor((lowest_dot_edge - args.crop_margin) / crop_grid) * crop_grid
+    if crop_y <= 0:
+        crop_y = None
+    else:
+        print(f"Cropping molds at y={crop_y}mm ({positive_mold_h - crop_y}mm of {positive_mold_h}mm kept)")
+
 print("Generating dots")
 dot_template = Sphere(dot_r, arc_size1=0)
 dot_list = [loc * dot_template for loc in Locations(dot_coords)]
@@ -141,6 +158,11 @@ with BuildPart() as positive_mold:
     add(dot_object, mode=Mode.ADD)
     print(time.time() - start)
 
+    if crop_y is not None:
+        print("Cropping mold")
+        with Locations((positive_mold_w/2, crop_y, -1)):
+            Box(2 * positive_mold_w, 2 * positive_mold_h, 10, align=(Align.CENTER, Align.MIN, Align.MIN), mode=Mode.INTERSECT)
+
     print("Scaling mold")
     start = time.time()
     scaled_mold = positive_mold.part.scale(scaling_factor)
@@ -149,4 +171,21 @@ with BuildPart() as positive_mold:
     print("Exporting mold")
     start = time.time()
     export_stl(scaled_mold, positive_mold_file_path, tolerance=0.1, angular_tolerance=1)
+    print(time.time() - start)
+
+# The negative mold is universal unless cropped, in which case each page gets a matching cropped negative.
+if crop_y is not None:
+
+    print("Generating cropped negative mold")
+    start = time.time()
+
+    with BuildPart() as negative_mold:
+        importer = Mesher()
+        imported_mesh = importer.read(base_negative_mold_file_path)
+        with Locations((negative_mold_w/2, negative_mold_h/2, 0)):
+            add(imported_mesh)
+        with Locations((negative_mold_w/2, crop_y, -1)):
+            Box(2 * negative_mold_w, 2 * negative_mold_h, 10, align=(Align.CENTER, Align.MIN, Align.MIN), mode=Mode.INTERSECT)
+
+    export_stl(negative_mold.part, negative_mold_file_path, tolerance=0.1, angular_tolerance=1)
     print(time.time() - start)

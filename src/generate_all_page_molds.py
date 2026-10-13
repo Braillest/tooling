@@ -1,18 +1,25 @@
+import argparse
 import asyncio
 import os
 import sys
 
 # Handle command line arguments
-if len(sys.argv) != 2:
-    print("Usage: python generate_all_page_molds.py <text_file_path>")
-    sys.exit(1)
+parser = argparse.ArgumentParser(description="Translate, paginate, and generate page molds for a text file.")
+parser.add_argument("text_file_path")
+parser.add_argument("--crop", action="store_true", help="Trim unused blank area below the last braille line of each page (positive + matching negative).")
+parser.add_argument("--crop-margin", type=float, default=10.0, help="Minimum distance in mm between the lowest dot and the cut. Default: 10")
+args = parser.parse_args()
 
-async def run_script(script_name, file_path, semaphore):
+mold_args = []
+if args.crop:
+    mold_args = ["--crop", "--crop-margin", str(args.crop_margin)]
+
+async def run_script(script_name, file_path, semaphore, extra_args=[]):
 
     async with semaphore:
 
         process = await asyncio.create_subprocess_exec(
-            "python", script_name, file_path,
+            "python", script_name, file_path, *extra_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -28,7 +35,7 @@ async def run_script(script_name, file_path, semaphore):
 
 async def main():
 
-    text_file_path = str(sys.argv[-1])
+    text_file_path = str(args.text_file_path)
     text_filename = os.path.basename(text_file_path)
     text_filename = os.path.splitext(text_filename)[0]
     paginated_braille_directory = "/data/5-paginated-braille/" + text_filename + "/"
@@ -58,7 +65,7 @@ async def main():
 
     print("Generating page molds...")
     paginated_braille_file_paths = [os.path.join(paginated_braille_directory, f) for f in os.listdir(paginated_braille_directory) if os.path.isfile(os.path.join(paginated_braille_directory, f))]
-    tasks = [run_script("/braillest/generate_page_mold_set.py", paginated_braille_file, semaphore) for paginated_braille_file in paginated_braille_file_paths]
+    tasks = [run_script("/braillest/generate_page_mold_set.py", paginated_braille_file, semaphore, mold_args) for paginated_braille_file in paginated_braille_file_paths]
     results = await asyncio.gather(*tasks)
 
 # Run the main function
