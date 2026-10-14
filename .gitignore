@@ -1,3 +1,4 @@
 data/*/*
 braillest-books/*/*
+!data/0-base-stls/*
 !.gitkeep
