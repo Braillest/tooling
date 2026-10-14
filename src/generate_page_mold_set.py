@@ -91,7 +91,6 @@ if not os.path.isfile(braille_file_path):
 for base_mold_file_path in [base_positive_mold_file_path, base_negative_mold_file_path]:
     if not os.path.isfile(base_mold_file_path):
         print("Base mold not found: " + base_mold_file_path)
-        print("Run ./scripts/restore-base-stls.sh from the root of the repo to restore the v9.8 base molds from git history.")
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), base_mold_file_path)
 
 print("Reading in file")
