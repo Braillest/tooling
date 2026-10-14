@@ -51,14 +51,6 @@ Pull requests: Read/Write
 - Generate molds: `./scripts/generate_all_page_molds.sh <text_file>`
 > ex) `./scripts/generate_all_page_molds.sh "./data/1-texts/Dracula by Bram Stoker.txt"`
 
-## Base molds
-
-Page molds are built on top of the base castle zip molds in `data/0-base-stls/`. That directory is gitignored, so a fresh clone won't have them. Restore the v9.8 base molds from git history with:
-
-```
-./scripts/restore-base-stls.sh
-```
-
 ## Cropping short pages
 
 Short documents such as menus, flyers, and signs often only use the top part of a page. Pass `--crop` to trim the blank area below the last braille line, which saves filament and print time.
