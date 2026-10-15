@@ -46,6 +46,9 @@ Pull requests: Read/Write
 
 - Download books: `python download_books.py`
 
+- Convert a PDF book to text: `python pdf_to_text.py <pdf_file> [output_text_file]`
+> ex) `python pdf_to_text.py "/data/0-books/Dracula by Bram Stoker.pdf"` writes `/data/1-texts/Dracula by Bram Stoker.txt`
+
 ## From the host at the root of the project:
 
 - Generate molds: `./scripts/generate_all_page_molds.sh <text_file>`
@@ -111,3 +114,21 @@ Pull requests: Read/Write
 # Standard
 
 ![The braillest format was designed specifically for US letter size paper using 3 ring binding and achieves a cell density of 32 columns and 26 rows, giving a total of 832 cells per page. We think our proposed standard meets a good middle ground between density vs readability. Cell column spacing of 2.5mm, dot diameter of 1.7mm, dot height of 0.6mm, cell width of 6mm, cell height of 10mm.](docs/img/braillest-standard.jpg)
+
+# Converting PDF Books
+
+`src/pdf_to_text.py` turns a PDF with a text layer into clean text for `generate_all_page_molds.py`.
+
+- Reads blocks in reading order, top to bottom. Use `--columns 2` for two column layouts.
+- Removes running headers, footers, and page numbers: lines near the top or bottom of the page (`--margin`, default 15% of the page height) that repeat on at least `--repeat` (default 30%) of pages, plus bare page numbers. Lines set larger than the body text, such as chapter headings, are never removed.
+- Rejoins words hyphenated across lines. Soft hyphens are always joined. Hard hyphens are kept only if the hyphenated word also appears unbroken somewhere else in the book (e.g. `well-known`).
+- Rebuilds paragraphs from wrapped lines using first line indents, vertical gaps, and text blocks, and joins paragraphs that continue onto the next page. Drop caps are reattached.
+- Detects chapter headings (`Chapter 1`, `Book II`, a larger/bold `IV`, or any title set much larger than body text) and puts a form feed line before each. Headings with no text between them share one break, and a title repeated right away is dropped. Disable with `--no-chapter-breaks`.
+- Normalizes text for liblouis: ligatures (`ﬁ` to `fi`), soft hyphens, non breaking and zero width spaces, and private use glyphs. Curly quotes are kept because UEB has distinct single and double quotes; use `--ascii-quotes` to flatten them.
+- Removes the Project Gutenberg header and license: everything before `*** START OF THE PROJECT GUTENBERG EBOOK ...` and after `*** END OF ...`. Keep it with `--keep-gutenberg-boilerplate`.
+- Removes print edition page anchors such as `[23]` (smaller than body text) and footnotes at the bottom of the page.
+- Keeps line breaks in verse (runs of 3+ short lines that start with a capital letter). `generate_paginated_braille.py` currently rewraps every paragraph, so this only matters in the text output for now.
+- Use `--first-page` / `--last-page` to skip other front matter or back matter.
+- Lists pages that contain images but no text. `--ocr` OCRs them with tesseract (off by default; install with `apt install tesseract-ocr` and set `TESSDATA_PREFIX` if needed). OCR output should be proofread.
+
+The output uses a blank line between paragraphs, which is what `generate_paginated_braille.py` expects. The pagination step doesn't yet start a new braille page at a form feed; it translates to a blank cell.
