@@ -1,18 +1,22 @@
+import argparse
 import asyncio
 import os
 import sys
 
 # Handle command line arguments
-if len(sys.argv) != 2:
-    print("Usage: python generate_all_page_molds.py <text_file_path>")
-    sys.exit(1)
+parser = argparse.ArgumentParser(description="Translate, paginate, and generate page molds for a text file.")
+parser.add_argument("text_file_path")
+parser.add_argument("--preserve-line-breaks", action="store_true", help="Treat single newlines inside a paragraph as hard line breaks instead of reflowing.")
+args = parser.parse_args()
 
-async def run_script(script_name, file_path, semaphore):
+pagination_args = ["--preserve-line-breaks"] if args.preserve_line_breaks else []
+
+async def run_script(script_name, file_path, semaphore, extra_args=[]):
 
     async with semaphore:
 
         process = await asyncio.create_subprocess_exec(
-            "python", script_name, file_path,
+            "python", script_name, file_path, *extra_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -28,7 +32,7 @@ async def run_script(script_name, file_path, semaphore):
 
 async def main():
 
-    text_file_path = str(sys.argv[-1])
+    text_file_path = str(args.text_file_path)
     text_filename = os.path.basename(text_file_path)
     text_filename = os.path.splitext(text_filename)[0]
     paginated_braille_directory = "/data/5-paginated-braille/" + text_filename + "/"
@@ -45,7 +49,7 @@ async def main():
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
     print("Generating paginated braille...")
-    tasks = [run_script("/braillest/generate_paginated_braille.py", text_file_path, semaphore)]
+    tasks = [run_script("/braillest/generate_paginated_braille.py", text_file_path, semaphore, pagination_args)]
     result = await asyncio.gather(*tasks)
 
     # Check if paginated_braille_directory was created/exists.

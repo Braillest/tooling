@@ -1,19 +1,21 @@
+import argparse
 import louis
 import os
 import re
-import sys
 import time
 
 # Handle command line arguments
-if len(sys.argv) != 2:
-    print("Usage: python generate_paginated_braille.py <text_file_path>")
-    sys.exit(1)
+parser = argparse.ArgumentParser(description="Translate a text file to braille, then format and paginate it.")
+parser.add_argument("text_file_path")
+parser.add_argument("--preserve-line-breaks", action="store_true", help="Treat single newlines inside a paragraph as hard line breaks (verse, menus, lists) instead of reflowing the paragraph.")
+args = parser.parse_args()
 
 # Control variables
 character_x_count = 32
 character_y_count = 26
 space_character = "\u2800"
-text_file_path = str(sys.argv[-1])
+text_file_path = str(args.text_file_path)
+page_break = "\f"  # A form feed in the text starts a new braille page.
 braille_directory = "/data/2-braille/"
 back_translation_directory = "/data/3-back-translations/"
 formatted_braille_directory = "/data/4-formatted-braille/"
@@ -44,10 +46,17 @@ start_time = time.time()
 with open(text_file_path, "r") as text_file:
     text_lines = text_file.readlines()
     with open(braille_path, "w") as braille_file:
-        for line in text_lines:
-            if remove_trailing_whitespace:
-                line = line.rstrip()
-            braille_file.write(louis.translateString(translation_table, line) + "\n")
+        for text_line in text_lines:
+            # Form feeds become their own page break line; the text around them is translated as usual.
+            segments = text_line.rstrip("\n").split(page_break)
+            for segment_index, line in enumerate(segments):
+                if segment_index > 0:
+                    braille_file.write(page_break + "\n")
+                if len(segments) > 1 and line.strip() == "":
+                    continue
+                if remove_trailing_whitespace:
+                    line = line.rstrip()
+                braille_file.write(louis.translateString(translation_table, line) + "\n")
 
 # Backtranslate braille to text
 print(time.time() - start_time)
@@ -59,6 +68,9 @@ with open(braille_path, "r") as braille_file:
     braille_lines = braille_file.readlines()
     with open(back_translation_path, "w") as back_translation_file:
         for line in braille_lines:
+            if line.rstrip("\n") == page_break:
+                back_translation_file.write(page_break + "\n")
+                continue
             if remove_trailing_whitespace:
                 line = line.rstrip()
             back_translation_file.write(louis.backTranslateString(translation_table, line) + "\n")
@@ -68,16 +80,15 @@ print(time.time() - start_time)
 print("Formatting braille")
 start_time = time.time()
 
-pattern = r"([^\n]+(?:\n[^\n]+)*)"
+# Paragraphs are runs of non blank lines. Page break lines are never part of a paragraph.
+pattern = r"([^\n\f]+(?:\n[^\n\f]+)*)"
 text = "".join(braille_lines)
 matches = re.finditer(pattern, text)
 offset = 0
 
-for match in matches:
 
-    # Convert list of text to string
-    match_text = match.group(0).replace("\n", space_character)
-    match_words = match_text.split(space_character)
+def wrap_words(match_words):
+
     current_line = ""
     wrapped_lines = []
 
@@ -108,6 +119,22 @@ for match in matches:
     if current_line:
         wrapped_lines.append(current_line)
 
+    return wrapped_lines
+
+
+for match in matches:
+
+    # Convert list of text to string
+    match_text = match.group(0).replace("\n", space_character)
+
+    if args.preserve_line_breaks:
+        # Each source line starts a new braille line; long lines still wrap.
+        wrapped_lines = []
+        for source_line in match.group(0).split("\n"):
+            wrapped_lines.extend(wrap_words(source_line.split(space_character)))
+    else:
+        wrapped_lines = wrap_words(match_text.split(space_character))
+
     wrapped_text = "\n".join(wrapped_lines)
     start = match.start() + offset
     end = match.end() + offset
@@ -135,6 +162,14 @@ current_page_size = 0
 with open(formatted_braille_path, "r") as formatted_braille_file:
     formatted_braille_lines = formatted_braille_file.readlines()
     for line_index, line in enumerate(formatted_braille_lines):
+
+        # Forced page break. No blank page when already at the top of a page.
+        if line.rstrip("\n") == page_break:
+            if current_page:
+                pages.append(current_page)
+                current_page = []
+                current_page_size = 0
+            continue
 
         if line.strip() != '' or current_page:
             current_page_size += 1
